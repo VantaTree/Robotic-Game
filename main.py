@@ -5,7 +5,6 @@ from level import Level
 #Initialize
 pygame.init()
 screen = pygame.display.set_mode((W,H), pygame.FULLSCREEN|pygame.SCALED)
-# screen = pygame.display.set_mode((W,H))
 pygame.display.set_caption('Robot Platformer')
 clock = pygame.time.Clock()
 
