@@ -9,7 +9,7 @@ pygame.display.set_caption('Robot Platformer')
 clock = pygame.time.Clock()
 
 #level
-level = Level(1)
+level = Level(3) #available levels: 0,1,2,3
 
 #Game Loop
 while True:

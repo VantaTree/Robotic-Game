@@ -208,6 +208,8 @@ RECTSAVED = "data/saved/tile_rects.PICKLE"
 try:
     with open(RECTSAVED, 'rb') as f:
         tile_rects = pickle.load(f)
+        if len(tile_rects) < GRID_SIZE[0]*GRID_SIZE[1]:
+            tile_rects += [pygame.Rect(0,0,TILE_SIZE,TILE_SIZE)]*(GRID_SIZE[0]*GRID_SIZE[1] - len(tile_rects))
 except FileNotFoundError:
     tile_rects =  [ pygame.Rect(0,0,TILE_SIZE,TILE_SIZE) for _ in range(GRID_SIZE[0]*GRID_SIZE[1])]
 

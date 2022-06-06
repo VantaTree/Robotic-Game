@@ -25,7 +25,6 @@ class Player:
         self.level_tmx = level_tmx
         self.collision_layer = level_tmx.get_layer_by_name('collision_layer')
         self.tile_ids = tile_ids
-        # print(*self.collision_layer.data, sep='\n')
 
         #movement
         self.moving = False
@@ -94,7 +93,7 @@ class Player:
             if self.direction.x == 1: self.speed = 0
             self.direction.x = -1
             self.moving = True
-        if not(keys[pygame.K_d] or keys[pygame.K_a]):
+        if not(keys[pygame.K_d] or keys[pygame.K_a]) or keys[pygame.K_d] and keys[pygame.K_a]:
             self.moving = False
 
         if keys[pygame.K_SPACE]:
@@ -102,8 +101,12 @@ class Player:
                 self.jump_button_down = True
                 self.should_jump = True
                 self.jump_buffer = pygame.time.get_ticks()
-        else: self.jump_button_down = False
+        else:
+            self.jump_button_down = False
+            # if self.direction.y < -self.max_jump_speed/2: #cancel jump only if player let button go early
+            #     self.direction.y = self.direction.y/4
 
+        # if keys[pygame.K_SPACE]:
         if self.should_jump and self.can_jump and (self.on_ground or self.coyote_jump):# jump
             self.direction.y = -self.max_jump_speed
             self.can_jump = False
@@ -111,38 +114,24 @@ class Player:
 
     def movement(self):    
 
+        self.on_ground = False # on_ground reset
+
+        self.direction.y = min(self.direction.y, self.terminal_velocity) # clamp fall
+        self.direction.y += self.gravity # direction y needs to be updated for step collision in the horizontal section
+        move_pos_y = self.direction.y
+
         #apply x movt
         if self.moving: self.speed += self.acceleration
         else: self.speed -= self.deceleration
         self.speed = max(0, min(self.speed, self.max_speed)) # clamp speed
-
-        move_pos_x = self.direction.x * self.speed
-        old_pos_x = self.pos.x # save x pos before slope collision
-        self.pos.x += move_pos_x* .71 # move slower when on slopes
-        self.rect.x = self.pos.x
-
-        #apply y pos
-        self.direction.y = min(self.direction.y, self.terminal_velocity) # clamp fall
-        self.direction.y += self.gravity
-        old_pos_y = self.pos.y # save y pos before slope collision
-        self.pos.y += self.direction.y
-        self.rect.y = round(self.pos.y)##
-
-        self.on_ground = False # on_ground reset
-
-        self.coll_with_ramp = False
-        self.slope_collision()
-
-        if self.coll_with_ramp: return # no tile collision if collided with ramp
-        
-        # re apply x pos for horizontal collision
-        self.pos.x = old_pos_x + move_pos_x
+        self.move_pos_x = self.direction.x * self.speed
+        self.pos.x += self.move_pos_x
         self.rect.x = self.pos.x if self.direction.x < 0 else ceil(self.pos.x) # rounding error fix
-        self.rect.y = round(old_pos_y)##
         self.collision('horizontal')
 
-        # re apply y pos for horizontal collision
-        self.rect.y = round(self.pos.y)##
+        #apply y pos
+        self.pos.y += move_pos_y
+        self.rect.y = round(self.pos.y)
         self.collision('vertical')
 
         if self.on_ground:
@@ -153,105 +142,90 @@ class Player:
 
         for x,y,gid in self.collision_layer:
 
-            tile_rect = self.get_rect_from_pos(x,y, gid)
-            if tile_rect is None: continue # no tile present
-            if self.get_id_from_gid(gid) in RAMPS: continue # ramp collision already handeled
+            id_ = self.get_id_from_gid(gid)
+            if id_ in STEPS:
+                for r_data in STEP_RECT[id_]:
+                    tile_rect = pygame.Rect(x*TILESIZE+r_data[0], y*TILESIZE+r_data[1], r_data[2], r_data[3])
+                    self.tile_collision(direction, tile_rect, x, y)
+            else:
+                tile_rect = self.get_rect_from_pos(x,y, gid)
+                if tile_rect is None: continue # no tile present
+                # if self.get_id_from_gid(gid) in RAMPS: continue # ramp collision already handeled
+                if self.tile_collision(direction, tile_rect, x, y, id_): return
 
-            if tile_rect.colliderect(self.rect):
+    def tile_collision(self, direction, tile_rect:pygame.Rect, x, y, id_=0):
 
-                if direction == 'horizontal':
+        if tile_rect.colliderect(self.rect):
 
-                    #step collision
-                    if tile_rect.height <= self.step_size and (tile_rect.collidepoint(self.rect.bottomright-pygame.Vector2(0,1)) or tile_rect.collidepoint(self.rect.bottomleft-pygame.Vector2(0,1))):
+            if direction == 'horizontal':
+
+                if id_ in RAMPS:
+                    # if tile_rect.colliderect(pygame.Rect(self.pos.x-self.move_pos_x, self.pos.y, self.rect.width, self.rect.height)):
+                    #     self.pos.x = self.pos.x-self.move_pos_x + (self.move_pos_x*.7)
+                    return
+
+                #step collision
+                if self.direction.y > 0:
+                    y_movt = pygame.Vector2(0,-1)
+                    if tile_rect.height <= self.step_size and (tile_rect.collidepoint(self.rect.bottomright+y_movt) or tile_rect.collidepoint(self.rect.bottomleft+y_movt)):
                         try: # only step up when space is there
                             if tile_rect.top-self.rect.height > self.get_rect_from_pos(x, y-1, (self.collision_layer.data[y-1][x])).bottom:
-                                self.rect.bottom = tile_rect.top
-                                self.pos.x = self.rect.x
+                                #space is there
                                 return
-                        except AttributeError or IndexError:
-                            self.rect.bottom = tile_rect.top
-                            self.pos.x = self.rect.x
-                            return
-                    
-                    #horizontal collision
-                    self.speed = 0
-                    if self.direction.x > 0:
-                        self.rect.right = tile_rect.left
-                        self.pos.x = self.rect.x
-                    elif self.direction.x < 0:
-                        self.rect.left = tile_rect.right
-                        self.pos.x = self.rect.x
+                            #else tile is blocking
+                        except AttributeError or IndexError: return # no tile is present
+                        # ignore honizontal coll to act like steps
+                
+                #horizontal collision
+                self.speed = 0
+                if self.direction.x > 0:
+                    self.rect.right = tile_rect.left
+                    self.pos.x = self.rect.x
+                elif self.direction.x < 0:
+                    self.rect.left = tile_rect.right
+                    self.pos.x = self.rect.x
 
-                elif direction == 'vertical':
-                    #vertical collision
-                    if self.direction.y > 0:
-                        self.rect.bottom = tile_rect.top
-                        self.pos.y = self.rect.y
-                        self.on_ground = True # on ground check
-                        self.direction.y = 0
-                    elif self.direction.y < 0:
-                        self.rect.top = tile_rect.bottom
-                        self.pos.y = self.rect.y
-                        self.direction.y = abs(self.direction.y)* -.2 # bounce player down
+            elif direction == 'vertical':
 
-    def slope_collision(self):
+                if id_ in RAMPS:
+                    if not self.slope_coll(tile_rect, id_): return
 
-        for x,y,gid in self.collision_layer:
+                #vertical collision
+                if self.direction.y > 0:
+                    self.rect.bottom = tile_rect.top
+                    self.pos.y = self.rect.y
+                    self.on_ground = True # on ground check
+                    self.direction.y = 0
+                elif self.direction.y < 0:
+                    self.rect.top = tile_rect.bottom
+                    self.pos.y = self.rect.y
+                    self.direction.y = abs(self.direction.y)* -.2 # bounce player down
 
-            tile_rect = self.get_rect_from_pos(x,y, gid)
-            if tile_rect is None: continue # empty tile
+    def slope_coll(self, t_rect:pygame.Rect, id_):
 
-            index = self.get_id_from_gid(gid)
-            if index not in RAMPS: continue # ramp check
+        if id_ in (R1, R3):
+            offset = self.rect.right - t_rect.left
+        elif id_ in (R2, R4):
+            offset = t_rect.right - self.rect.left
 
-            if tile_rect.colliderect(self.rect):
-                self.coll_with_ramp = True
-                self.slope_coll_logic(index, tile_rect)
+        if id_ in (R1, R2):
+            if not 0 <= offset <= TILESIZE: return True
+            target_pos = t_rect.bottom-offset
+            self.rect.bottom = min(self.rect.bottom, target_pos)
+            if self.rect.bottom == target_pos:
                 self.pos.y = self.rect.y
-
-    def slope_coll_logic(self, index, rect:pygame.Rect=None):
-
-        # diff < 0 indicates player at the end of the slope. (on top)
-
-        if index in(R1, R3): # right ramps
-            diff = rect.right - self.rect.right
-            if index == R1:# floor ramp
-                if diff < 0:
-                    self.rect.bottom = rect.top
-                    self.direction.y = 0
-                    self.on_ground = True
-                    return True
-                clamp_y = rect.bottom -TILESIZE +diff
-            elif index == R3:# ceiling ramp
-                if diff < 0:
-                    self.rect.top = rect.bottom
-                    return True
-                clamp_y2 = rect.top +TILESIZE -diff
-        elif index in (R2, R4): # left ramps
-            diff = self.rect.left - rect.left
-            if index == R2:# floor ramp
-                if diff < 0:
-                    self.rect.bottom = rect.top
-                    self.on_ground = True
-                    self.direction.y = 0
-                    return True
-                clamp_y = rect.bottom -TILESIZE +diff
-            elif index == R4:# ceiling ramp
-                if diff < 0:
-                    self.rect.top = rect.bottom
-                    return True
-                clamp_y2 = rect.top +TILESIZE -diff
-
-        try:# clamp player from going inside ramp
-            self.rect.bottom = min(clamp_y, self.rect.bottom)
-            if self.rect.bottom == clamp_y:
                 self.on_ground = True
                 self.direction.y = 0
-        except UnboundLocalError:
-            self.rect.top = max(clamp_y2, self.rect.top)
-            if self.rect.top == clamp_y2: self.direction.y = 1
-        
-        return True
+            
+        elif id_ in (R3, R4):
+            if 0 > offset > TILESIZE:
+                self.tile_collision('horizontal', t_rect, t_rect.x, t_rect.y, id_)
+                return
+            target_pos = t_rect.top+offset
+            self.rect.top = max(self.rect.top, target_pos)
+            if self.rect.top == target_pos:
+                self.pos.y = self.rect.y
+                self.direction.y = 1
 
     def animate(self):
 
@@ -286,10 +260,3 @@ class Player:
     def draw(self, offset):
 
         self.screen.blit(self.image, (self.rect.centerx-offset.x-8, self.rect.bottom-offset.y-32))
-
-    def update(self):
-
-        self.input()
-        self.movement()
-        self.cooldowns()
-        self.animate()
