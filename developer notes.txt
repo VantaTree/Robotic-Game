@@ -1,0 +1,38 @@
+Developer Notes
+
+Current development stage:
+
+level design basics complete, lacks animated tiles
+and tiles with functionality for each level
+
+player movement mostly complete. some minor bugs.
+
+The base game is still far from finished, like no main menus, or other ui elements, or content.
+
+Level Design:
+
+levels designed with Tiled and pytmx.
+all tiles in "collision_layer" have bounding boxes taken from "tile_rect_list.PICKLE",
+made with "tile_collisions.py"
+
+all world tiles must be in same tilemap, when updating the tilemap, update the .tsx file also.
+
+Types:
+1) normal rects,
+2) steps, are normal rects but 4 or less px high.
+this tile will not stop x collision but do y collision as normal, making the player jump up the tile
+with no speed loss.
+3) stairs: they are special tiles with multiple rects to act as stair steps.
+4) slopes: they are simmilar to steps as in they don't ineract with x collision, but they put the player on the slope
+corresposing to where the relative x pos of player is to the slope.
+slopes for now can only interact with the player on the slant edges and not the full sides.
+slopes are a bit buggy, especially when colliding with other tiles.
+
+Tile Rects maker:
+
+script "tile_collisions.py" takes a tilemap and has vars for tile size and others.
+it goes through every tile and lets you save a custom rects for each in a list where
+the index corresponds to the tile pos in the tilemap.
+```
+01234
+56789```

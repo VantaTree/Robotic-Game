@@ -54,8 +54,8 @@ class Camera:
     def update(self):
 
         #update pos (gradually add to offset)
-        self.offset.x -= (self.offset.x - self.player.rect.centerx + (W//2))*.1
-        self.offset.y -= (self.offset.y - self.player.rect.centery + (H//2))*.1
+        self.offset.x -= round((self.offset.x - self.player.rect.centerx + (W//2))*.1)
+        self.offset.y -= round((self.offset.y - self.player.rect.centery + (H//2))*.1)
         
         #clamp
         self.offset.x = max(0, min(self.offset.x, GRIDSIZE*TILESIZE-W))
