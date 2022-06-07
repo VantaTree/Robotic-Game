@@ -9,7 +9,7 @@ pygame.display.set_caption('Robot Platformer')
 clock = pygame.time.Clock()
 
 #level
-level = Level(1) #available levels: 0,1,2,3
+level = Level(4) #available levels: 0,1,2,3,4
 
 #Game Loop
 while True:
@@ -17,9 +17,9 @@ while True:
     pygame.display.update()
     clock.tick(FPS)
 
-    # EVENT = pygame.event.get().copy()
+    EVENT = pygame.event.get().copy()
 
-    for event in pygame.event.get():
+    for event in EVENT:
         if event.type == pygame.QUIT:
             pygame.quit()
             raise SystemExit
@@ -29,4 +29,4 @@ while True:
                 raise SystemExit
 
     level.draw()
-    level.run()
+    level.run(EVENT)

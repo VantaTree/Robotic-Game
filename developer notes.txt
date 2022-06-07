@@ -36,3 +36,12 @@ the index corresponds to the tile pos in the tilemap.
 ```
 01234
 56789```
+
+ADD functionality to objects:
+like a button
+
+add class to "level_object_funcs.py" with naming convection "level_{lvl_no}_id_{id}"
+if there are mutiple of these objects in one class use incremented id: 0-inf.
+
+any blocks that need to be changed in code like normal button to pressed button.
+you need to have that tile in layer "replace_tiles" and hide them, this will load that tile (pytmx)

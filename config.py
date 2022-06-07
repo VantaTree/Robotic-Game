@@ -38,6 +38,7 @@ LEVEL_DATA = {
         1: (3, 60),
         2: (2, 61),
         3: (3, 60),
+        4: (8, 60),
     },
     'bg color': {
         # 0: 'burlywood1',
@@ -45,6 +46,7 @@ LEVEL_DATA = {
         1: 'lavenderblush3',
         2: 'beige',
         3: 'burlywood1',
+        4: 'slategrey',
     }
 }
 

@@ -4,6 +4,7 @@ from csv import reader as csv_reader
 from config import *
 from player import Player
 from math import ceil
+from level_object import create_objects
 # from pickle import load as p_load
 
 class Level:
@@ -20,6 +21,11 @@ class Level:
         self.player = Player(*LEVEL_DATA['player pos'][level_no], self.level_tmx, self.tile_ids)
         self.cam = Camera(self.player)
 
+        self.objects = create_objects(level_no)
+
+    def get_gid_from_id(self, id):
+        '''gets gid of tile from id (provided by pytmx)'''
+        return self.tile_ids.index(id+1)+1
 
     def get_id_from_gid(self, gid):
         '''gets id of tile from gid (provided by pytmx)'''
@@ -177,10 +183,12 @@ class Level:
         self.player.cooldowns()
         self.player.animate()
 
-    def run(self):
+    def run(self, EVENT):
         self.player_update()
         self.cam.update()
-
+        for obj in self.objects.copy():
+            if obj.run(self, EVENT):
+                self.objects.discard(obj)
 
 class Camera:
 
