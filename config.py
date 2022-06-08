@@ -46,7 +46,8 @@ LEVEL_DATA = {
         1: 'lavenderblush3',
         2: 'beige',
         3: 'burlywood1',
-        4: 'slategrey',
+        # 4: 'slategrey',
+        4: 'black',
     }
 }
 

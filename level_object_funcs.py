@@ -2,7 +2,7 @@ import pygame
 from config import *
 from math import dist as math_dist
 from debug import debug
-from random import randint
+from random import randint, choice
 
 class Support:
 
@@ -60,6 +60,25 @@ class Button(ObjectInfo):
                     if event.type == pygame.KEYDOWN and event.key == pygame.K_e:
                         return True
 
+class Laser:
+
+    def __init__(self, lvl:int, id:int, posistions: list[tuple[int,int]], color:str):
+        self.lvl = lvl
+        self.id = id
+        self.posistions = [pygame.Vector2(pos) for pos in posistions]
+        self.active = True
+        self.anim_ids = (96, 97, 98) if color == 'red' else (99, 100, 101)
+
+    def run(self, lvl_obj, EVENT):
+
+        if not self.active:
+            for pos in self.posistions:
+                lvl_obj.collision_layer.data[int(pos.y)][int(pos.x)] = 0
+        else:
+            for pos in self.posistions:
+                if choice((1, 0, 0)):
+                    lvl_obj.collision_layer.data[int(pos.y)][int(pos.x)] = lvl_obj.get_gid_from_id(choice(self.anim_ids))
+
 class level_4_id_0(Button):
 
     def __init__(self):
@@ -69,7 +88,7 @@ class level_4_id_0(Button):
 
         if self.trigger(lvl_obj, EVENT):
             coll_data = lvl_obj.level_tmx.get_layer_by_name('collision_layer').data
-            coll_data[59][11] = lvl_obj.get_gid_from_id(163)
+            coll_data[59][11] = lvl_obj.get_gid_from_id(74)
             coll_data[60][11] = 0
             lvl_obj.level_tmx.get_layer_by_name('other_tiles').data[60][11] = 0
             self.pressed = True
@@ -86,6 +105,10 @@ class level_4_id_1(Pad):
     def __init__(self):
         super().__init__(4, 1, (22, 60))
 
+    def on_ready(self, lvl_obj):
+
+        self.laser = lvl_obj.objects[3]
+
     def run(self, lvl_obj, EVENT):
 
         if self.trigger(lvl_obj):
@@ -97,18 +120,16 @@ class level_4_id_1(Pad):
 
         if not self.pressed and self.anim_index >= 1:
             self.pressed = True
-            lvl_obj.collision_layer.data[57][28] = lvl_obj.get_gid_from_id(163)
-            lvl_obj.collision_layer.data[61][28] = lvl_obj.get_gid_from_id(163)
-            for y in range(58, 61):
-                lvl_obj.collision_layer.data[y][28] = 0
+            lvl_obj.collision_layer.data[57][28] = lvl_obj.get_gid_from_id(74)
+            lvl_obj.collision_layer.data[61][28] = lvl_obj.get_gid_from_id(86)
+            self.laser.active = False
         elif self.pressed and self.anim_index == 0:
             self.pressed = False
-            lvl_obj.collision_layer.data[57][28] = lvl_obj.get_gid_from_id(164)
-            lvl_obj.collision_layer.data[61][28] = lvl_obj.get_gid_from_id(164)
+            self.laser.active = True
+            lvl_obj.collision_layer.data[57][28] = lvl_obj.get_gid_from_id(76)
+            lvl_obj.collision_layer.data[61][28] = lvl_obj.get_gid_from_id(88)
 
-        if not self.pressed:
-            for y in range(58, 61):
-                lvl_obj.collision_layer.data[y][28] = lvl_obj.get_gid_from_id(randint(96,98))
+        self.laser.run(lvl_obj, EVENT)
 
 class level_4_id_2(Button):
 
@@ -120,3 +141,8 @@ class level_4_id_2(Button):
         if self.trigger(lvl_obj, EVENT, TILESIZE*2):
             lvl_obj.level_tmx.get_layer_by_name('other_tiles').data[int(self.pos.y)][int(self.pos.x)] = lvl_obj.get_gid_from_id(155)
             return True
+
+class level_4_id_3(Laser):
+
+    def __init__(self):
+        super().__init__(4, 3, [(28, 58),(28, 59),(28, 60)], 'red')

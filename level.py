@@ -22,6 +22,9 @@ class Level:
         self.cam = Camera(self.player)
 
         self.objects = create_objects(level_no)
+        for obj in self.objects:
+            try: obj.on_ready(self)
+            except AttributeError: pass
 
     def get_gid_from_id(self, id):
         '''gets gid of tile from id (provided by pytmx)'''
@@ -188,7 +191,7 @@ class Level:
         self.cam.update()
         for obj in self.objects.copy():
             if obj.run(self, EVENT):
-                self.objects.discard(obj)
+                self.objects.remove(obj)
 
 class Camera:
 

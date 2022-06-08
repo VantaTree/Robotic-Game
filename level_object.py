@@ -7,12 +7,12 @@ def create_objects(lvl_no):
     '''
     Creates objects for given level.
     '''
-    OBJECTS = set()
+    OBJECTS = list()
 
     id_ = 0
     while 1:
         try:
-            OBJECTS.add(eval(f'lvl_obj_funcs.level_{lvl_no}_id_{id_}()'))
+            OBJECTS.append(eval(f'lvl_obj_funcs.level_{lvl_no}_id_{id_}()'))
             id_ += 1
         except AttributeError:break
 
